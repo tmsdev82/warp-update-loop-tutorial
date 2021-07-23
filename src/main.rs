@@ -3,6 +3,7 @@ use tokio::sync::{mpsc, Mutex};
 use warp::{ws::Message, Filter, Rejection};
 
 mod handlers;
+mod workers;
 mod ws;
 
 #[derive(Debug, Clone)]
@@ -25,6 +26,11 @@ async fn main() {
         .and_then(handlers::ws_handler);
 
     let routes = ws_route.with(warp::cors().allow_any_origin());
+
+    println!("Starting update loop");
+    tokio::task::spawn(async move {
+        workers::main_worker(clients.clone()).await;
+    });
     println!("Starting server");
     warp::serve(routes).run(([127, 0, 0, 1], 8000)).await;
 }
